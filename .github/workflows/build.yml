@@ -36,7 +36,7 @@ jobs:
           ls -la
           
           xcodebuild clean build \
-            -project "/Users/runner/work/iPhone-VCAM/iPhone-VCAM" \
+            -project "iPhone-VCAM.xcodeproj" \
             -scheme "iPhone-VCAM" \
             -configuration Release \
             -sdk iphoneos \
