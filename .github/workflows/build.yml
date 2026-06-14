@@ -12,8 +12,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 打印目录文件，方便核对
-      - name: List files
+      # 列出根目录文件，核对子文件夹名称
+      - name: List root files
         run: |
           pwd
           ls -la
@@ -23,15 +23,20 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      # 安装打包依赖
+      # 安装 dpkg 打包工具
       - name: Install dpkg
         run: |
           brew update
           brew install dpkg
 
-      # 编译：使用 xcworkspace，无 Pod
+      # 进入项目子目录编译（重点：cd 到项目文件夹）
       - name: Xcode Build arm64 Release
         run: |
+          # 替换为你的真实子文件夹名，这里示例为 iPhone-VCAM
+          cd iPhone-VCAM
+          pwd
+          ls -la
+          
           xcodebuild clean build \
             -workspace "iPhone-VCAM.xcworkspace" \
             -scheme "iPhone-VCAM" \
@@ -45,11 +50,12 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             SYMROOT="./Build"
 
-      # 构造 DEB 目录 & control
+      # 回到根目录，处理 DEB 打包
       - name: Prepare DEB structure
         run: |
           mkdir -p deb_tmp/Applications deb_tmp/DEBIAN
-          APP_FILE=$(find ./Build/Products/Release-iphoneos -maxdepth 1 -type d -name "*.app" | head -n 1)
+          # 从子目录找到编译出的 app
+          APP_FILE=$(find ./iPhone-VCAM/Build/Products/Release-iphoneos -maxdepth 1 -type d -name "*.app" | head -n 1)
           if [ ! -d "$APP_FILE" ]; then
             echo "ERROR: .app not found"
             exit 1
@@ -68,12 +74,10 @@ jobs:
           echo "Description: iPhone Virtual Camera arm64" >> deb_tmp/DEBIAN/control
           echo "Depends: firmware (>= 14.0)" >> deb_tmp/DEBIAN/control
 
-      # 打包 deb
       - name: Build .deb package
         run: |
           dpkg-deb -b deb_tmp iPhone-VCAM_arm64.deb
 
-      # 自动上传到 Release 附件
       - name: Upload to Release Assets
         uses: softprops/action-gh-release@v1
         with:
