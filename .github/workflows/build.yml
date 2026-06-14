@@ -12,21 +12,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 打印目录文件，方便核对
+      - name: List files
+        run: |
+          pwd
+          ls -la
+
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
 
-      - name: Install dpkg via Homebrew
+      # 安装打包依赖
+      - name: Install dpkg
         run: |
           brew update
           brew install dpkg
 
-      # 无 Pod，直接编译
+      # 编译：使用 xcworkspace，无 Pod
       - name: Xcode Build arm64 Release
         run: |
           xcodebuild clean build \
-            -project "iPhone-VCAM.xcodeproj" \
+            -workspace "iPhone-VCAM.xcworkspace" \
             -scheme "iPhone-VCAM" \
             -configuration Release \
             -sdk iphoneos \
@@ -38,6 +45,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             SYMROOT="./Build"
 
+      # 构造 DEB 目录 & control
       - name: Prepare DEB structure
         run: |
           mkdir -p deb_tmp/Applications deb_tmp/DEBIAN
@@ -52,7 +60,7 @@ jobs:
           TAG_VERSION=${{ github.event.release.tag_name }}
           echo "Package: com.wordgege.vcam" > deb_tmp/DEBIAN/control
           echo "Name: iPhone-VCAM" >> deb_tmp/DEBIAN/control
-          echo "Version: 1.0.0" >> deb_tmp/DEBIAN/control
+          echo "Version: ${TAG_VERSION}" >> deb_tmp/DEBIAN/control
           echo "Architecture: iphoneos-arm64" >> deb_tmp/DEBIAN/control
           echo "Section: System" >> deb_tmp/DEBIAN/control
           echo "Priority: optional" >> deb_tmp/DEBIAN/control
@@ -60,10 +68,12 @@ jobs:
           echo "Description: iPhone Virtual Camera arm64" >> deb_tmp/DEBIAN/control
           echo "Depends: firmware (>= 14.0)" >> deb_tmp/DEBIAN/control
 
+      # 打包 deb
       - name: Build .deb package
         run: |
           dpkg-deb -b deb_tmp iPhone-VCAM_arm64.deb
 
+      # 自动上传到 Release 附件
       - name: Upload to Release Assets
         uses: softprops/action-gh-release@v1
         with:
