@@ -1,6 +1,5 @@
 name: Build iPhone-VCAM arm64 & DEB
 
-# 仅在发布 Release / 创建 tag 时触发
 on:
   release:
     types: [published]
@@ -13,6 +12,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 打印当前目录、列出文件，方便排错
+      - name: Check project files
+        run: |
+          pwd
+          ls -la
+
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -23,9 +28,15 @@ jobs:
           brew update
           brew install dpkg
 
+      # 安装 CocoaPods 并执行 pod install
       - name: Install CocoaPods & Dependencies
         run: |
           sudo gem install cocoapods
+          # 校验 Podfile 是否存在
+          if [ ! -f "Podfile" ]; then
+            echo "ERROR: Podfile not found!"
+            exit 1
+          fi
           pod install --repo-update
 
       - name: Xcode Build arm64 Release
@@ -54,9 +65,10 @@ jobs:
           cp -R "$APP_FILE" deb_tmp/Applications/
           find deb_tmp -name ".DS_Store" -delete
           
+          TAG_VERSION=${{ github.event.release.tag_name }}
           echo "Package: com.wordgege.vcam" > deb_tmp/DEBIAN/control
           echo "Name: iPhone-VCAM" >> deb_tmp/DEBIAN/control
-          echo "Version: 1.0.0" >> deb_tmp/DEBIAN/control
+          echo "Version: 0.1.1" >> deb_tmp/DEBIAN/control
           echo "Architecture: iphoneos-arm64" >> deb_tmp/DEBIAN/control
           echo "Section: System" >> deb_tmp/DEBIAN/control
           echo "Priority: optional" >> deb_tmp/DEBIAN/control
@@ -68,7 +80,6 @@ jobs:
         run: |
           dpkg-deb -b deb_tmp iPhone-VCAM_arm64.deb
 
-      # 自动把 deb 上传到本次 Release 附件
       - name: Upload to Release Assets
         uses: softprops/action-gh-release@v1
         with:
