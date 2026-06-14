@@ -11,23 +11,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 1. 安装系统依赖 & Xcode 命令行工具
+      - name: Install system dependencies
+        run: |
+          sudo xcode-select --install || true
+          brew update
+          brew install perl dpkg ldid
+
+      # 2. 安装 Theos
       - name: Install Theos toolchain
         run: |
           git clone --depth 1 https://github.com/theos/theos.git ~/theos
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           echo "PATH=$HOME/theos/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Build and package (arm64)
+      # 3. 编译 + 打包，指定 arm64
+      - name: Build and package
         run: |
           make clean
           make package ARCHS=arm64
 
-      - name: Rename deb package
+      # 4. 重命名安装包
+      - name: Rename deb file
         run: |
           TAG_VER=${{ github.event.release.tag_name }}
-          find ./packages -type f -name "*.deb" -exec mv {} ./iPhone-VCAM_${TAG_VER}_arm64.deb \;
+          find ./packages -name "*.deb" -exec mv {} ./iPhone-VCAM_${TAG_VER}_arm64.deb \;
 
-      - name: Upload to Release Assets
+      # 5. 上传到 Release 附件
+      - name: Upload to Release
         uses: softprops/action-gh-release@v1
         with:
           files: iPhone-VCAM_*_arm64.deb
