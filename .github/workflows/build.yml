@@ -7,38 +7,27 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 安装 Theos 编译环境
-      - name: Install Theos
+      - name: Install Theos toolchain
         run: |
           git clone --depth 1 https://github.com/theos/theos.git ~/theos
-          echo "export THEOS=~/theos" >> ~/.zshrc
-          echo "export PATH=\$THEOS/bin:\$PATH" >> ~/.zshrc
-          source ~/.zshrc
-          # 验证环境
-          nic --version
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          echo "PATH=$HOME/theos/bin:$PATH" >> $GITHUB_ENV
 
-      # 编译：指定 arm64，输出 deb
-      - name: Build Tweak & DEB
+      - name: Build and package (arm64)
         run: |
-          source ~/.zshrc
-          # 清理旧产物
           make clean
-          # 仅编译 arm64 架构，打包 deb
           make package ARCHS=arm64
 
-      # 重命名（可选，统一文件名）
-      - name: Rename DEB
+      - name: Rename deb package
         run: |
           TAG_VER=${{ github.event.release.tag_name }}
-          find ./packages -name "*.deb" -exec mv {} ./iPhone-VCAM_${TAG_VER}_arm64.deb \;
+          find ./packages -type f -name "*.deb" -exec mv {} ./iPhone-VCAM_${TAG_VER}_arm64.deb \;
 
-      # 上传到当前 Release 附件
-      - name: Upload DEB to Release
+      - name: Upload to Release Assets
         uses: softprops/action-gh-release@v1
         with:
           files: iPhone-VCAM_*_arm64.deb
