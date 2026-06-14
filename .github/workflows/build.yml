@@ -29,10 +29,9 @@ jobs:
           brew update
           brew install dpkg
 
-      # 进入项目子目录编译（重点：cd 到项目文件夹）
+      # 进入项目子目录编译（重点：cd 到项目文件夹） # 替换为你的真实子文件夹名，这里示例为 iPhone-VCAM
       - name: Xcode Build arm64 Release
         run: |
-          # 替换为你的真实子文件夹名，这里示例为 iPhone-VCAM
           cd iPhone-VCAM
           pwd
           ls -la
